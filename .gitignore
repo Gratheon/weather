@@ -1,0 +1,6 @@
+node_modules
+.dccache
+.idea
+
+# ignore live access, sorry hackers :)
+config/config.prod.js

@@ -1,0 +1,39 @@
+{
+  "name": "weather",
+  "version": "1.0.0",
+  "description": "Weather management",
+  "main": "server.js",
+  "type": "module",
+  "dependencies": {
+    "@apollo/federation": "0.37.1",
+    "apollo-server-core": "3.4.0",
+    "apollo-server-fastify": "3.4.0",
+    "fastify": "3.22.1",
+    "fastify-raw-body": "3.2.0",
+    "got": "^12.5.2",
+    "graphql": "15.8.0",
+    "jwt-encode": "1.0.1",
+    "mysql2": "2.3.2",
+    "node-fetch": "3.0.0",
+    "sha1": "1.1.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "ENV_ID=dev nodemon app/user-cycle.js",
+    "start": "ENV_ID=prod node app/user-cycle.js",
+    "deploy": "make"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/gratheon/weather.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gratheon/weather/issues"
+  },
+  "homepage": "https://github.com/gratheon/weather#readme",
+  "devDependencies": {
+    "nodemon": "^2.0.20"
+  }
+}
