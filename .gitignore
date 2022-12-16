@@ -4,3 +4,4 @@ node_modules
 
 # ignore live access, sorry hackers :)
 config/config.prod.js
+config/config.dev.js
