@@ -56,7 +56,7 @@ async function startApolloServer(app, typeDefs, resolvers) {
 		const path = await startApolloServer(app, schema, resolvers);
 
 		await app.listen(8070, '0.0.0.0');
-		console.log(`🚀 Server ready at http://localhost:8000${path}`);
+		console.log(`🚀 Server ready at http://localhost:8070${path}`);
 	} catch (e) {
 		console.error(e);
 	}
