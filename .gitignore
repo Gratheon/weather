@@ -3,5 +3,5 @@ node_modules
 .idea
 
 # ignore live access, sorry hackers :)
-config/config.prod.js
-config/config.dev.js
+app/config/config.prod.js
+app/config/config.dev.js
