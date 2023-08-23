@@ -2,11 +2,11 @@ version: '3.9'
 services:
   weather:
     build: .
-    command:
-      node app/weather.js
+    # command:
+    #   node app/weather.js
     ports:
       - 8070:8070
-    volumes:
-      - .:/app/
+    # volumes:
+    #   - .:/app/
     restart: always
     network_mode: host
