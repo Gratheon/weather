@@ -10,8 +10,8 @@ jobs:
     steps:
       - name: pull
         working-directory: /www/weather/
-        run: git pull
-        
+        run: git reset --hard && git pull
+
       - name: restart
         working-directory: /www/weather/
         run: ./restart.sh
