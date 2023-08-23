@@ -14,4 +14,4 @@ jobs:
 
       - name: restart
         working-directory: /www/weather/
-        run: ./restart.sh
+        run: chmod +x restart.sh && ./restart.sh
