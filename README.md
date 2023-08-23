@@ -19,7 +19,7 @@ flowchart LR
 
 ## Development
 ```
-npm run dev
+tilt up
 ```
 
 ## Deployment
