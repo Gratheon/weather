@@ -19,10 +19,5 @@ flowchart LR
 
 ## Development
 ```
-tilt up
-```
-
-## Deployment
-```
-make deploy
+just start
 ```
