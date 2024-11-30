@@ -32,11 +32,72 @@ export const resolvers = {
 
             // convert xml to json
             let data = await xml2js.parseStringPromise(xml)
-            console.log(data)
-
             let weatherData = data?.forecasts?.forecast
+            // console.log({weatherData})
 
-            return getClosestRegionWeather(weatherData, {lat: args.lat, lon: args.lng}, locationMapping)
+            // let regionWeather = getClosestRegionWeather(weatherData, {lat: args.lat, lon: args.lng}, locationMapping)
+            // console.dir({
+            //     weatherData,
+            //     // regionWeather
+            // }, {depth: 10})
+
+            let result = {
+                days:[],
+                temp:[],
+                wind:[],
+            }
+
+
+            // fill general
+            for (let i = 0; i < weatherData.length; i++) {
+
+                if (i < 1) {
+                    continue;
+                }
+                let dayData = weatherData[i]
+                // let date = dayData["$"].date
+
+                // let period = dayData.day[0]
+
+                // let placeData = period.place.find((p) => p.name[0] === "Harku") || {};
+                // let windData = period.wind.find((w) => w.name[0] === "Harku") || {};
+
+                // console.log({placeData})
+
+                // insert twice for night and day
+                result.days.push(dayData["$"].date)
+                result.days.push(dayData["$"].date)
+
+                // console.log(dayData.night[0], {depth: 10})
+
+                if (dayData.night[0].tempmin && dayData.night[0].tempmin[0]) {
+                    result.temp.push(dayData.night[0].tempmin[0])
+                } else {
+                    result.temp.push(0)
+                }
+
+                if (dayData.day[0].tempmin && dayData.day[0].tempmin[0]) {
+                    result.temp.push(dayData.day[0].tempmin[0])
+                } else {
+                    result.temp.push(0)
+                }
+
+
+                // add wind
+                if (dayData.night.wind && dayData.night.wind[0].speedmax[0]) {
+                    result.wind.push(dayData.night.wind[0].speedmax[0])
+                } else {
+                    result.wind.push(0)
+                }
+
+
+                if (dayData.day.wind && dayData.day.wind[0].speedmax[0]) {
+                    result.wind.push(dayData.day.wind[0].speedmax[0])
+                } else {
+                    result.wind.push(0)
+                }
+            }
+            return result
         }
     }
 }
@@ -82,56 +143,93 @@ const getClosestRegionWeather = (weatherData, targetLocation, locationMapping) =
         throw new Error("No closest location found.");
     }
 
-    console.log({
-        closestLocation
-    })
+    // console.log({
+    //     closestLocation
+    // })
 
     // Extract weather data for the closest location
-    const result = weatherData.map((dayData) => {
-        const date = dayData["$"].date;
 
-        const extractData = (period) => {
-            console.log(period);
-            if (!period.place) {
-                return {
-                    phenomenon: period.phenomenon?.[0] || period.phenomenon?.[0],
-                    temp: {
-                        min: period.tempmin?.[0] || period.tempmin?.[0],
-                        max: period.tempmax?.[0] || period.tempmax?.[0],
-                    }
-                    ,
-                    wind: {
-                        min: period.speedmin?.[0] || "N/A",
-                        max: period.speedmax?.[0] || "N/A",
-                    }
-                }
 
-            }
-            const placeData = period.place.find((p) => p.name[0] === closestLocation) || {};
-            const windData = period.wind.find((w) => w.name[0] === closestLocation) || {};
+    // const result = weatherD  ata.map((dayData) => {
 
-            return {
-                phenomenon: placeData.phenomenon?.[0] || period.phenomenon?.[0],
-                temp: {
-                    min: placeData.tempmin?.[0] || period.tempmin?.[0],
-                    max: placeData.tempmax?.[0] || period.tempmax?.[0],
-                },
-                wind: {
-                    min: windData.speedmin?.[0] || "N/A",
-                    max: windData.speedmax?.[0] || "N/A",
-                },
-            };
-        };
+    const result = [];
+    const days = [];
+    const wind = [];
 
-        return {
-            date,
-            day: extractData(dayData.day[0]),
-            night: extractData(dayData.night[0]),
-        };
-    });
+    // for(let dayData of weatherData) {
+    //
+        // console.log({dayData})
+        // const date = dayData["$"].date;
 
-    return {
-        closestLocation,
-        data: result,
-    };
+        // let period = dayData.day[0]
+
+        // const placeData = period.place.find((p) => p.name[0] === closestLocation) || {};
+        // const windData = period.wind.find((w) => w.name[0] === closestLocation) || {};
+        //
+        // // insert twice for night and day
+        // days.push(dayData["$"].date)
+        // days.push(dayData["$"].date)
+        //
+        // if(dayData.day.wind && dayData.day.wind[0].speedmax[0]) {
+        //     wind.push(dayData.day.wind[0].speedmax[0])
+        // } else {
+        //     wind.push(0)
+        // }
+        //
+        // if(dayData.night.wind && dayData.night.wind[0].speedmax[0]) {
+        //     wind.push(dayData.night.wind[0].speedmax[0])
+        // } else {
+        //     wind.push(0)
+        // }
+
+        // console.log({dayData})
+
+        // const extractData = (period) => {
+        //     console.log(period);
+        //     if (!period.place) {
+        //         return {
+        //             phenomenon: period.phenomenon?.[0] || period.phenomenon?.[0],
+        //             temp: {
+        //                 min: period.tempmin?.[0] || period.tempmin?.[0],
+        //                 max: period.tempmax?.[0] || period.tempmax?.[0],
+        //             }
+        //             ,
+        //             wind: {
+        //                 min: period.speedmin?.[0] || "N/A",
+        //                 max: period.speedmax?.[0] || "N/A",
+        //             }
+        //         }
+        //
+        //     }
+        //     const placeData = period.place.find((p) => p.name[0] === closestLocation) || {};
+        //     const windData = period.wind.find((w) => w.name[0] === closestLocation) || {};
+        //
+        //     return {
+        //         phenomenon: placeData.phenomenon?.[0] || period.phenomenon?.[0],
+        //         temp: {
+        //             min: placeData.tempmin?.[0] || period.tempmin?.[0],
+        //             max: placeData.tempmax?.[0] || period.tempmax?.[0],
+        //         },
+        //         wind: {
+        //             min: windData.speedmin?.[0] || "N/A",
+        //             max: windData.speedmax?.[0] || "N/A",
+        //         },
+        //     };
+        // };
+
+        // return {
+        //     date,
+        //     day: extractData(dayData.day[0]),
+        //     night: extractData(dayData.night[0]),
+        // };
+    // };
+
+    // return {
+    //     closestLocation,
+    //     data: {
+    //         days,
+    //         // temp,
+    //         wind
+    //     },
+    // };
 };
