@@ -2,11 +2,12 @@ import fs from "fs";
 import { resolve, dirname } from "path";
 import fetch from "node-fetch";
 import { print } from "graphql";
+import sha1 from 'sha1';
 
 import config from "./config/config.js";
 
 const packageJson = JSON.parse(
-  fs.readFileSync(resolve("package.json"), "utf8")
+    fs.readFileSync(resolve("package.json"), "utf8")
 );
 
 async function postData(url = "", data = {}) {
@@ -26,7 +27,7 @@ async function postData(url = "", data = {}) {
 
   if (!response.ok) {
     console.error(
-      `schema-registry respose code ${response.status}: ${response.statusText}`
+        `schema-registry respose code ${response.status}: ${response.statusText}`
     );
     return false;
   }
@@ -35,15 +36,21 @@ async function postData(url = "", data = {}) {
 
 export async function registerSchema(schema) {
   const url = `${config.schemaRegistryHost}/schema/push`;
-  const version = fs.readFileSync("./.version", "utf8");
 
   try {
-    await postData(url, {
+    const schemaString = print(schema)
+    const version = sha1(schemaString)
+
+    const payload = {
       name: packageJson.name,
       url: config.selfUrl,
       version: process.env.ENV_ID === "dev" ? "latest" : version,
-      type_defs: print(schema),
-    });
+      type_defs: schemaString,
+    }
+
+    console.log(payload)
+
+    await postData(url, payload);
   } catch (e) {
     console.error(e);
   }
