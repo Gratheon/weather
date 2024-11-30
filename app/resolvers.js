@@ -27,10 +27,6 @@ export const resolvers = {
             // console.log({weatherData})
 
             let closestLocation = getClosestLocation({lat: args.lat, lon: args.lng})
-            console.dir({
-                closestLocation,
-                weatherData
-            }, {depth: 10})
 
             let result = {
                 days:[],
@@ -41,8 +37,18 @@ export const resolvers = {
             result.days.push(weatherData[0]['$'].date)
             result.days.push(weatherData[0]['$'].date)
 
-            result.temp.push(weatherData[0]['night'][0].place[0].tempmin ? weatherData[0]['night'][0].place[0].tempmin[0] : "0")
-            result.temp.push(weatherData[0]['day'][0].place[0].tempmin ? weatherData[0]['day'][0].place[0].tempmin[0] : "0")
+            let placeKey = 0
+            // pick the right place
+            for(let i=0; i<weatherData[0]['night'][0].place.length; i++){
+                if(weatherData[0]['night'][0].place[i].name[0] === closestLocation){
+                    placeKey = i
+                }
+            }
+
+            result['closestLocation'] = closestLocation
+
+            result.temp.push(weatherData[0]['night'][0].place[placeKey].tempmin ? weatherData[0]['night'][0].place[placeKey].tempmin[0] : "0")
+            result.temp.push(weatherData[0]['day'][0].place[placeKey].tempmin ? weatherData[0]['day'][0].place[placeKey].tempmin[0] : "0")
 
             result.wind.push(weatherData[0]['night'][0].wind[0].speedmax[0])
             result.wind.push(weatherData[0]['day'][0].wind[0].speedmax[0])
