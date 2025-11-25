@@ -16,6 +16,75 @@ export const resolvers = {
             return data;
         },
 
+        historicalWeather: async (parent, args, ctx) => {
+            const { lat, lng, startDate, endDate } = args;
+
+            const hourlyParams = [
+                'diffuse_radiation',
+                'direct_radiation',
+                'wind_speed_10m',
+                'wind_gusts_10m',
+                'cloud_cover_low',
+                'cloud_cover_mid',
+                'cloud_cover_high',
+                'rain',
+                'alder_pollen',
+                'birch_pollen',
+                'grass_pollen',
+                'mugwort_pollen',
+                'olive_pollen',
+                'ragweed_pollen',
+                'pm2_5',
+                'pm10'
+            ].join(',');
+
+            const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${startDate}&end_date=${endDate}&hourly=${hourlyParams}`;
+
+            const data = await got.get(url).json();
+
+            const transformToTimeSeries = (times, values) => {
+                if (!times || !values) return [];
+                return times.map((time, index) => ({
+                    time,
+                    value: values[index]
+                }));
+            };
+
+            const hourly = data.hourly || {};
+            const times = hourly.time || [];
+
+            return {
+                solarRadiation: {
+                    diffuse_radiation: transformToTimeSeries(times, hourly.diffuse_radiation),
+                    direct_radiation: transformToTimeSeries(times, hourly.direct_radiation)
+                },
+                wind: {
+                    wind_speed_10m: transformToTimeSeries(times, hourly.wind_speed_10m),
+                    wind_gusts_10m: transformToTimeSeries(times, hourly.wind_gusts_10m)
+                },
+                cloudCover: {
+                    cloud_cover_low: transformToTimeSeries(times, hourly.cloud_cover_low),
+                    cloud_cover_mid: transformToTimeSeries(times, hourly.cloud_cover_mid),
+                    cloud_cover_high: transformToTimeSeries(times, hourly.cloud_cover_high)
+                },
+                rain: {
+                    rain: transformToTimeSeries(times, hourly.rain)
+                },
+                pollen: {
+                    ragweed_pollen: transformToTimeSeries(times, hourly.ragweed_pollen),
+                    alder_pollen: transformToTimeSeries(times, hourly.alder_pollen),
+                    birch_pollen: transformToTimeSeries(times, hourly.birch_pollen),
+                    grass_pollen: transformToTimeSeries(times, hourly.grass_pollen),
+                    mugwort_pollen: transformToTimeSeries(times, hourly.mugwort_pollen),
+                    olive_pollen: transformToTimeSeries(times, hourly.olive_pollen)
+                },
+                pollution: {
+                    pm2_5: transformToTimeSeries(times, hourly.pm2_5),
+                    pm10: transformToTimeSeries(times, hourly.pm10)
+                }
+            };
+        },
+
         weatherEstonia: async (parent, args, ctx) => {
             const xml = await got.get(
                 `https://www.ilmateenistus.ee/ilma_andmed/xml/forecast.php?lang=eng`

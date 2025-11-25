@@ -17,6 +17,60 @@ flowchart LR
 ```
 
 
+## API
+
+### Queries
+
+#### `weather(lat: String!, lng: String!): JSON`
+Get current weather forecast from Open-Meteo API.
+
+#### `weatherEstonia(lat: String!, lng: String!): JSON`
+Get weather forecast specifically for Estonia from ilmateenistus.ee.
+
+#### `historicalWeather(lat: String!, lng: String!, startDate: String!, endDate: String!): HistoricalWeatherData`
+Get historical weather data from Open-Meteo archive API.
+
+**Example Query:**
+```graphql
+query {
+  historicalWeather(
+    lat: "59.43",
+    lng: "24.75",
+    startDate: "2024-01-01",
+    endDate: "2024-01-31"
+  ) {
+    solarRadiation {
+      diffuse_radiation { time value }
+      direct_radiation { time value }
+    }
+    wind {
+      wind_speed_10m { time value }
+      wind_gusts_10m { time value }
+    }
+    cloudCover {
+      cloud_cover_low { time value }
+      cloud_cover_mid { time value }
+      cloud_cover_high { time value }
+    }
+    rain {
+      rain { time value }
+    }
+    pollen {
+      ragweed_pollen { time value }
+      alder_pollen { time value }
+      birch_pollen { time value }
+      grass_pollen { time value }
+      mugwort_pollen { time value }
+      olive_pollen { time value }
+    }
+    pollution {
+      pm2_5 { time value }
+      pm10 { time value }
+    }
+  }
+}
+```
+
 ## Development
 ```
 just start
