@@ -17,12 +17,17 @@ export const schema = gql`
     }
 
     type HistoricalWeatherData {
+        temperature: Temperature
         solarRadiation: SolarRadiation
         wind: Wind
         cloudCover: CloudCover
         rain: Rain
         pollen: Pollen
         pollution: Pollution
+    }
+
+    type Temperature {
+        temperature_2m: [TimeSeriesEntry]
     }
 
     type SolarRadiation {

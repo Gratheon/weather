@@ -20,6 +20,7 @@ export const resolvers = {
             const { lat, lng, startDate, endDate } = args;
 
             const hourlyParams = [
+                'temperature_2m',
                 'diffuse_radiation',
                 'direct_radiation',
                 'wind_speed_10m',
@@ -54,6 +55,9 @@ export const resolvers = {
             const times = hourly.time || [];
 
             return {
+                temperature: {
+                    temperature_2m: transformToTimeSeries(times, hourly.temperature_2m)
+                },
                 solarRadiation: {
                     diffuse_radiation: transformToTimeSeries(times, hourly.diffuse_radiation),
                     direct_radiation: transformToTimeSeries(times, hourly.direct_radiation)
