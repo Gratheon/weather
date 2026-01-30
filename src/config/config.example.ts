@@ -1,6 +1,6 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const config = {
+import { Config } from './types';
+
+const config: Config = {
     twilio: {
         accountSid: '',
         authToken: '',
@@ -19,5 +19,5 @@ const config = {
     },
     JWT_KEY: '',
 };
-exports.default = config;
-//# sourceMappingURL=config.example.js.map
+
+export default config;

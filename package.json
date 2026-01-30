@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "description": "Weather management",
   "main": "server.js",
-  "type": "module",
   "dependencies": {
     "@apollo/federation": "0.37.1",
+    "@databases/mysql": "7.0.0",
     "apollo-server-core": "3.4.0",
     "apollo-server-fastify": "3.4.0",
+    "fast-safe-stringify": "2.1.1",
     "fastify": "3.22.1",
     "fastify-raw-body": "3.2.0",
     "got": "^12.5.2",
@@ -20,7 +21,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "ENV_ID=dev nodemon app/weather.js",
+    "build": "tsc -p src/config/tsconfig.json",
+    "dev": "nodemon",
     "start": "ENV_ID=prod node app/weather.js"
   },
   "repository": {
@@ -34,6 +36,8 @@
   },
   "homepage": "https://github.com/gratheon/weather#readme",
   "devDependencies": {
-    "nodemon": "^2.0.20"
+    "@types/node": "^20.0.0",
+    "nodemon": "^2.0.20",
+    "typescript": "5.2.2"
   }
 }

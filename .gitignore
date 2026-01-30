@@ -2,6 +2,16 @@ node_modules
 .dccache
 .idea
 
+# TypeScript build artifacts
+*.js.map
+app/*.js
+app/config/*.js
+app/logger/*.js
+app/app/
+app/src/
+
 # ignore live access, sorry hackers :)
 app/config/config.prod.js
 app/config/config.dev.js
+src/config/config.prod.ts
+src/config/config.dev.ts
