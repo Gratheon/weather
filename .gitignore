@@ -10,8 +10,6 @@ app/logger/*.js
 app/app/
 app/src/
 
-# ignore live access, sorry hackers :)
-app/config/config.prod.js
-app/config/config.dev.js
+# ignore live access configs
 src/config/config.prod.ts
 src/config/config.dev.ts
