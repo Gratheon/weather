@@ -1,0 +1,16 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+README.md
+.env
+.dccache
+.idea
+
+# Don't copy compiled files, we'll build in Docker
+app/*.js
+app/*.js.map
+app/config/*.js
+app/config/*.js.map
+app/logger/*.js
+app/logger/*.js.map
