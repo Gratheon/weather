@@ -20,9 +20,12 @@
     "xml2js": "^0.6.2"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node test/integration.test.js",
+    "test:ci": "npm run build && npm run test:wait-and-run",
+    "test:wait-and-run": "node -e \"const http=require('http');const check=()=>http.get('http://localhost:8070',()=>{console.log('Server ready');process.exit(0)}).on('error',()=>setTimeout(check,1000));check()\" && npm test",
     "build": "tsc -p src/config/tsconfig.json",
     "dev": "nodemon",
+    "dev-in-docker": "nodemon",
     "start": "ENV_ID=prod node app/weather.js"
   },
   "repository": {

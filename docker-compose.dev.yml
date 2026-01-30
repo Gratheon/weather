@@ -1,12 +1,16 @@
 services:
   weather:
-    build: .
-    command:
-     ./node_modules/.bin/nodemon app/weather.js --watch app --watch config -L
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     ports:
       - 8070:8070
     volumes:
-       - .:/app/
+      - ./src:/app/src
+      - ./config:/app/config
+      - ./.version:/app/.version
+      - /app/node_modules
     restart: always
     environment:
       - ENV_ID=dev
+      - NODE_OPTIONS=--enable-source-maps

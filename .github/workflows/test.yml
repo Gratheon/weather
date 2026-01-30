@@ -1,13 +1,14 @@
-name: deploy
+name: Test
 on:
+  pull_request:
+    branches: [main]
   push:
-    branches: main
-  workflow_dispatch:
+    branches: [main]
 
 jobs:
   test:
-    runs-on: ubuntu-latest
     timeout-minutes: 10
+    runs-on: ubuntu-latest
     
     steps:
       - uses: actions/checkout@v4
@@ -40,6 +41,7 @@ jobs:
           ENV_ID=test node app/weather.js &
           echo $! > server.pid
         env:
+          # Prevent database connection errors from failing the server
           NODE_ENV: test
       
       - name: Wait for server to be ready
@@ -59,15 +61,3 @@ jobs:
           if [ -f server.pid ]; then
             kill $(cat server.pid) || true
           fi
-
-  deploy:
-    needs: test
-    runs-on: self-hosted
-    steps:
-      - name: pull
-        working-directory: /www/weather/
-        run: git reset --hard && git pull
-
-      - name: restart
-        working-directory: /www/weather/
-        run: chmod +x restart.sh && ./restart.sh
