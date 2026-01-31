@@ -58,6 +58,28 @@ async function startApolloServer(app: FastifyInstance, typeDefs: any, resolvers:
             reply.send({ hello: 'world' });
         });
 
+        // Test endpoint to trigger an error for testing stacktrace logging
+        app.get('/test-error', (request: FastifyRequest, reply: FastifyReply) => {
+            try {
+                // Simulate a nested function call to show stacktrace
+                function deepFunction() {
+                    throw new Error('This is a test error from TypeScript code');
+                }
+                
+                function middleFunction() {
+                    deepFunction();
+                }
+                
+                middleFunction();
+            } catch (err) {
+                logger.errorEnriched('Test error endpoint triggered', err as Error, { 
+                    endpoint: '/test-error',
+                    testData: { foo: 'bar', nested: { value: 123 } }
+                });
+                reply.status(500).send({ error: 'Test error triggered successfully' });
+            }
+        });
+
         // Logo SVG inline (copied from user-cycle)
         const logoSvg = `<?xml version="1.0" encoding="utf-8"?>
 <svg viewBox="0 0 500 147" xmlns="http://www.w3.org/2000/svg">

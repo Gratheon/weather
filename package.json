@@ -6,6 +6,7 @@
   "dependencies": {
     "@apollo/federation": "0.37.1",
     "@databases/mysql": "7.0.0",
+    "@gratheon/log-lib": "^2.2.4",
     "apollo-server-core": "3.4.0",
     "apollo-server-fastify": "3.4.0",
     "fast-safe-stringify": "2.1.1",
@@ -26,7 +27,8 @@
     "build": "tsc -p src/config/tsconfig.json",
     "dev": "nodemon",
     "dev-in-docker": "nodemon",
-    "start": "ENV_ID=prod node app/weather.js"
+    "start": "ENV_ID=prod node app/weather.js",
+    "start:local": "ENV_ID=local node app/weather.js"
   },
   "repository": {
     "type": "git",

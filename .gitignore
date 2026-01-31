@@ -13,3 +13,4 @@ app/src/
 # ignore live access configs
 src/config/config.prod.ts
 src/config/config.dev.ts
+src/config/config.local.ts
