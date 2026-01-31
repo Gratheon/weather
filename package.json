@@ -25,8 +25,8 @@
     "test:ci": "npm run build && npm run test:wait-and-run",
     "test:wait-and-run": "node -e \"const http=require('http');const check=()=>http.get('http://localhost:8070',()=>{console.log('Server ready');process.exit(0)}).on('error',()=>setTimeout(check,1000));check()\" && npm test",
     "build": "tsc -p src/config/tsconfig.json",
-    "dev": "nodemon",
-    "dev-in-docker": "nodemon",
+    "dev": "tsx watch src/weather.ts",
+    "dev-in-docker": "tsx watch src/weather.ts",
     "start": "ENV_ID=prod node app/weather.js",
     "start:local": "ENV_ID=local node app/weather.js"
   },
@@ -45,7 +45,7 @@
   "homepage": "https://github.com/gratheon/weather#readme",
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "nodemon": "^3.1.11",
+    "tsx": "^4.19.2",
     "typescript": "5.2.2"
   }
 }
