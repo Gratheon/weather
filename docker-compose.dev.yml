@@ -14,3 +14,9 @@ services:
     environment:
       - ENV_ID=dev
       - NODE_OPTIONS=--enable-source-maps
+    networks:
+      - gratheon_default
+
+networks:
+  gratheon_default:
+    external: true
