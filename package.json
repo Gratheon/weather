@@ -7,15 +7,15 @@
     "@apollo/federation": "0.37.1",
     "@databases/mysql": "7.0.0",
     "@gratheon/log-lib": "^2.2.4",
-    "apollo-server-core": "3.4.0",
+    "apollo-server-core": "3.13.0",
     "apollo-server-fastify": "3.4.0",
     "fast-safe-stringify": "2.1.1",
-    "fastify": "3.22.1",
+    "fastify": "3.29.5",
     "fastify-raw-body": "3.2.0",
     "got": "^11.8.6",
     "graphql": "15.8.0",
     "jwt-encode": "1.0.1",
-    "mysql2": "2.3.2",
+    "mysql2": "3.16.2",
     "node-fetch": "^2.7.0",
     "sha1": "1.1.1",
     "xml2js": "^0.6.2"
@@ -36,13 +36,16 @@
   },
   "author": "",
   "license": "ISC",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "bugs": {
     "url": "https://github.com/gratheon/weather/issues"
   },
   "homepage": "https://github.com/gratheon/weather#readme",
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "nodemon": "^2.0.20",
+    "nodemon": "^3.1.11",
     "typescript": "5.2.2"
   }
 }
