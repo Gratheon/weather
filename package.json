@@ -4,7 +4,7 @@
   "description": "Weather management",
   "main": "server.js",
   "dependencies": {
-    "@apollo/federation": "0.37.1",
+    "@apollo/federation": "0.38.1",
     "@databases/mysql": "7.0.0",
     "@gratheon/log-lib": "^2.2.7",
     "apollo-server-core": "3.13.0",
