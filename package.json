@@ -37,14 +37,14 @@
   "author": "",
   "license": "ISC",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=25.0.0"
   },
   "bugs": {
     "url": "https://github.com/gratheon/weather/issues"
   },
   "homepage": "https://github.com/gratheon/weather#readme",
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^25.0.0",
     "tsx": "^4.19.2",
     "typescript": "5.2.2"
   }

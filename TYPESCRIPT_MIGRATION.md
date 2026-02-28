@@ -11,7 +11,7 @@ The weather microservice has been refactored from JavaScript to TypeScript with 
 ### 1. Dependencies Added
 
 - `typescript@5.2.2` - TypeScript compiler
-- `@types/node@^20.0.0` - Node.js type definitions
+- `@types/node@^25.0.0` - Node.js type definitions
 - `@databases/mysql@7.0.0` - Modern MySQL client with TypeScript support
 - `fast-safe-stringify@2.1.1` - Safe JSON stringification for logging
 
