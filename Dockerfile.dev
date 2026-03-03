@@ -4,12 +4,13 @@ WORKDIR /app
 
 ENV NODE_ENV=development
 
-COPY package.json package-lock.json* ./
-RUN npm install --include=dev
+COPY package.json pnpm-lock.yaml ./
+RUN npm install -g pnpm@10.29.2
+RUN pnpm install --frozen-lockfile
 
 COPY src/config ./src/config
 COPY .version* ./
 
 EXPOSE 8070
 
-CMD ["npm", "run", "dev-in-docker"]
+CMD ["pnpm", "run", "dev-in-docker"]

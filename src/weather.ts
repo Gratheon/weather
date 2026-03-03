@@ -1,7 +1,8 @@
-import { ApolloServer } from "apollo-server-fastify";
-import { ApolloServerPluginDrainHttpServer, ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-core";
+import { ApolloServer } from "@apollo/server";
+import { ApolloServerPluginLandingPageLocalDefault } from "@apollo/server/plugin/landingPage/default";
+import fastifyApollo, { fastifyApolloDrainPlugin } from "@as-integrations/fastify";
 import fastify, { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-import { buildSubgraphSchema } from '@apollo/federation';
+import { buildSubgraphSchema } from "@apollo/subgraph";
 
 import { schema } from './schema';
 import { resolvers } from './resolvers';
@@ -12,40 +13,27 @@ interface ApolloContext {
     uid?: string;
 }
 
-function fastifyAppClosePlugin(app: FastifyInstance) {
-    return {
-        async serverWillStart() {
-            return {
-                async drainServer() {
-                    await app.close();
-                }
-            };
-        }
-    };
-}
-
 async function startApolloServer(app: FastifyInstance, typeDefs: any, resolvers: any): Promise<string> {
     logger.info('Starting Apollo Server');
 
-    const server = new ApolloServer({
+    const server = new ApolloServer<ApolloContext>({
         schema: buildSubgraphSchema([{ typeDefs, resolvers }]),
         plugins: [
-            fastifyAppClosePlugin(app),
-            ApolloServerPluginLandingPageGraphQLPlayground(),
-            ApolloServerPluginDrainHttpServer({ httpServer: app.server })
+            fastifyApolloDrainPlugin(app),
+            ApolloServerPluginLandingPageLocalDefault({ embed: true })
         ],
-        context: (req: any): ApolloContext => {
-            return {
-                uid: req.request.raw.headers['internal-userid']
-            };
-        },
     });
 
     await server.start();
-    app.register(server.createHandler());
+    app.register(fastifyApollo(server), {
+        path: '/graphql',
+        context: async (request): Promise<ApolloContext> => ({
+            uid: request.headers['internal-userid'] as string | undefined
+        })
+    });
 
     logger.info('Apollo Server started successfully');
-    return server.graphqlPath;
+    return '/graphql';
 }
 
 (async function main() {
@@ -196,7 +184,7 @@ async function startApolloServer(app: FastifyInstance, typeDefs: any, resolvers:
         const port = 8070;
         const host = '0.0.0.0';
         
-        await app.listen(port, host);
+        await app.listen({ port, host });
         logger.info(`Server ready at http://localhost:${port}${path}`, { port, host, path });
     } catch (e) {
         logger.errorEnriched('Failed to start server', e as Error);
