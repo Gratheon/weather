@@ -23,6 +23,14 @@ const packageJson: PackageJson = JSON.parse(
     fs.readFileSync(resolve("package.json"), "utf8")
 );
 
+function resolveSchemaPushUrl(schemaRegistryHost: string): string {
+    const normalizedHost = schemaRegistryHost.trim().replace(/\/+$/, "");
+    if (normalizedHost.endsWith("/schema/push")) {
+        return normalizedHost;
+    }
+    return `${normalizedHost}/schema/push`;
+}
+
 async function postData(url: string, data: SchemaPayload): Promise<any> {
     try {
         const response = await fetch(url, {
@@ -34,7 +42,11 @@ async function postData(url: string, data: SchemaPayload): Promise<any> {
         });
 
         if (!response.ok) {
-            logger.error(`Schema registry response code ${response.status}: ${response.statusText}`);
+            const errorBody = await response.text();
+            logger.error(`Schema registry response code ${response.status}: ${response.statusText}`, {
+                url,
+                body: errorBody
+            });
             return false;
         }
         
@@ -51,11 +63,12 @@ async function postData(url: string, data: SchemaPayload): Promise<any> {
 }
 
 export async function registerSchema(schema: DocumentNode): Promise<void> {
-    const url = `${config.schemaRegistryHost}/schema/push`;
+    const url = resolveSchemaPushUrl(config.schemaRegistryHost);
 
     try {
         logger.info('Registering GraphQL schema', { 
             registry: config.schemaRegistryHost,
+            registryPushUrl: url,
             serviceName: packageJson.name 
         });
 
