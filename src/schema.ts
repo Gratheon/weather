@@ -122,7 +122,9 @@ export const schema = parse(/* GraphQL */ `
 
     type CompactTimeSeries {
         startTime: String
+        endTime: String
         stepHours: Int!
+        pointsCount: Int!
         values: [Float]
     }
 

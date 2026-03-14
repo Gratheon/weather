@@ -50,7 +50,9 @@ interface HistoricalWeatherData {
 
 interface CompactTimeSeries {
     startTime: string | null;
+    endTime: string | null;
     stepHours: number;
+    pointsCount: number;
     values: Array<number | null>;
 }
 
@@ -182,7 +184,9 @@ const setCachedHistoricalWeather = async (args: QueryArgs, data: HistoricalWeath
 
 const toCompactSeries = (entries: TimeSeriesEntry[] | undefined, stepHours: number): CompactTimeSeries => ({
     startTime: entries && entries.length > 0 ? entries[0].time : null,
+    endTime: entries && entries.length > 0 ? entries[entries.length - 1].time : null,
     stepHours,
+    pointsCount: entries ? entries.length : 0,
     values: entries ? entries.map((entry) => entry.value) : []
 });
 
