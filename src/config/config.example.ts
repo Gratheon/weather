@@ -21,6 +21,13 @@ const config: Config = {
     openweathermap: {
         apiToken: 'YOUR_OPENWEATHERMAP_API_TOKEN'
     },
+    redis: {
+        host: 'redis',
+        port: 6379,
+        password: '',
+        db: 0,
+        historicalWeatherCacheTtlSeconds: 1800
+    },
     JWT_KEY: 'YOUR_JWT_KEY',
 };
 

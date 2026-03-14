@@ -1,6 +1,8 @@
 import got from 'got';
 import xml2js from 'xml2js';
+import Redis from 'ioredis';
 import { logger } from './logger';
+import config from './config';
 
 interface Coordinates {
     lat: number;
@@ -46,16 +48,143 @@ interface HistoricalWeatherData {
     };
 }
 
+interface CompactTimeSeries {
+    startTime: string | null;
+    stepHours: number;
+    values: Array<number | null>;
+}
+
+interface HistoricalWeatherCompactData {
+    temperature: {
+        temperature_2m: CompactTimeSeries;
+    };
+    solarRadiation: {
+        diffuse_radiation: CompactTimeSeries;
+        direct_radiation: CompactTimeSeries;
+    };
+    wind: {
+        wind_speed_10m: CompactTimeSeries;
+        wind_gusts_10m: CompactTimeSeries;
+    };
+    cloudCover: {
+        cloud_cover_low: CompactTimeSeries;
+        cloud_cover_mid: CompactTimeSeries;
+        cloud_cover_high: CompactTimeSeries;
+    };
+    rain: {
+        rain: CompactTimeSeries;
+    };
+    pollen: {
+        ragweed_pollen: CompactTimeSeries;
+        alder_pollen: CompactTimeSeries;
+        birch_pollen: CompactTimeSeries;
+        grass_pollen: CompactTimeSeries;
+        mugwort_pollen: CompactTimeSeries;
+        olive_pollen: CompactTimeSeries;
+    };
+    pollution: {
+        pm2_5: CompactTimeSeries;
+        pm10: CompactTimeSeries;
+    };
+}
+
 interface QueryArgs {
     lat: string;
     lng: string;
     startDate?: string;
     endDate?: string;
+    stepHours?: number;
 }
 
 interface GraphQLContext {
     uid?: string;
 }
+
+const redisClient = config.redis.host
+    ? new Redis({
+        host: config.redis.host,
+        port: config.redis.port,
+        password: config.redis.password || undefined,
+        db: config.redis.db,
+        lazyConnect: true,
+        enableOfflineQueue: false,
+        maxRetriesPerRequest: 1,
+        connectTimeout: 1000,
+      })
+    : null;
+
+if (redisClient) {
+    redisClient.on('ready', () => {
+        logger.info('Redis cache client ready', {
+            host: config.redis.host,
+            port: config.redis.port,
+            db: config.redis.db
+        });
+    });
+
+    redisClient.on('error', (error) => {
+        logger.errorEnriched('Redis cache client error', error as Error);
+    });
+
+    redisClient.connect().catch((error) => {
+        logger.errorEnriched('Failed to connect Redis cache client', error as Error);
+    });
+} else {
+    logger.info('Redis cache disabled: REDIS_HOST is not configured');
+}
+
+const normalizeCoordinate = (coordinate: string): string => {
+    const parsed = Number.parseFloat(coordinate);
+    return Number.isFinite(parsed) ? parsed.toFixed(4) : coordinate;
+};
+
+const normalizeStepHours = (stepHours?: number): number => {
+    const parsed = Number(stepHours ?? 1);
+    if (!Number.isFinite(parsed)) return 1;
+    return Math.min(24, Math.max(1, Math.floor(parsed)));
+};
+
+const historicalWeatherCacheKey = (args: QueryArgs): string =>
+    `weather:historical:v2:${normalizeCoordinate(args.lat)}:${normalizeCoordinate(args.lng)}:${args.startDate}:${args.endDate}:step-${normalizeStepHours(args.stepHours)}`;
+
+const getCachedHistoricalWeather = async (args: QueryArgs): Promise<HistoricalWeatherData | null> => {
+    if (!redisClient || redisClient.status !== 'ready') {
+        return null;
+    }
+
+    const key = historicalWeatherCacheKey(args);
+    const cachedValue = await redisClient.get(key);
+    if (!cachedValue) {
+        return null;
+    }
+
+    try {
+        return JSON.parse(cachedValue) as HistoricalWeatherData;
+    } catch {
+        logger.info('Ignoring invalid historical weather cache payload', { key });
+        return null;
+    }
+};
+
+const setCachedHistoricalWeather = async (args: QueryArgs, data: HistoricalWeatherData): Promise<void> => {
+    if (!redisClient || redisClient.status !== 'ready') {
+        return;
+    }
+
+    const key = historicalWeatherCacheKey(args);
+    await redisClient.set(
+        key,
+        JSON.stringify(data),
+        'EX',
+        Math.max(60, config.redis.historicalWeatherCacheTtlSeconds)
+    );
+};
+
+const toCompactSeries = (entries: TimeSeriesEntry[] | undefined, stepHours: number): CompactTimeSeries => ({
+    startTime: entries && entries.length > 0 ? entries[0].time : null,
+    stepHours,
+    values: entries ? entries.map((entry) => entry.value) : []
+});
 
 function isEstonia(lng: number, lat: number): boolean {
     return (lng > 21 && lng < 28 && lat > 57 && lat < 60);
@@ -84,9 +213,18 @@ export const resolvers = {
 
         historicalWeather: async (parent: any, args: QueryArgs, ctx: GraphQLContext): Promise<HistoricalWeatherData> => {
             const { lat, lng, startDate, endDate } = args;
+            const stepHours = normalizeStepHours(args.stepHours);
 
             try {
-                logger.info('Fetching historical weather data', { lat, lng, startDate, endDate });
+                logger.info('Fetching historical weather data', { lat, lng, startDate, endDate, stepHours });
+
+                const cachedData = await getCachedHistoricalWeather(args);
+                if (cachedData) {
+                    logger.info('Historical weather cache hit', { lat, lng, startDate, endDate, stepHours });
+                    return cachedData;
+                }
+
+                logger.info('Historical weather cache miss', { lat, lng, startDate, endDate, stepHours });
 
                 const hourlyParams = [
                     'temperature_2m',
@@ -114,22 +252,20 @@ export const resolvers = {
 
                 const transformToTimeSeries = (times: string[], values: (number | null)[]): TimeSeriesEntry[] => {
                     if (!times || !values) return [];
-                    return times.map((time, index) => ({
-                        time,
-                        value: values[index]
-                    }));
+                    const result: TimeSeriesEntry[] = [];
+                    for (let index = 0; index < times.length; index += stepHours) {
+                        result.push({
+                            time: times[index],
+                            value: values[index]
+                        });
+                    }
+                    return result;
                 };
 
                 const hourly = data.hourly || {};
                 const times = hourly.time || [];
 
-                logger.info('Historical weather data fetched successfully', { 
-                    lat, 
-                    lng, 
-                    dataPoints: times.length 
-                });
-
-                return {
+                const transformedData: HistoricalWeatherData = {
                     temperature: {
                         temperature_2m: transformToTimeSeries(times, hourly.temperature_2m)
                     },
@@ -162,12 +298,63 @@ export const resolvers = {
                         pm10: transformToTimeSeries(times, hourly.pm10)
                     }
                 };
+
+                await setCachedHistoricalWeather(args, transformedData);
+
+                logger.info('Historical weather data fetched successfully', {
+                    lat, 
+                    lng, 
+                    dataPoints: times.length,
+                    downsampledPoints: transformedData.temperature.temperature_2m.length,
+                    stepHours
+                });
+
+                return transformedData;
             } catch (error) {
                 logger.errorEnriched('Failed to fetch historical weather data', error as Error, { 
                     lat, lng, startDate, endDate 
                 });
                 throw error;
             }
+        },
+
+        historicalWeatherCompact: async (parent: any, args: QueryArgs, ctx: GraphQLContext): Promise<HistoricalWeatherCompactData> => {
+            const stepHours = normalizeStepHours(args.stepHours);
+            const full = await (resolvers.Query.historicalWeather as any)(parent, args, ctx) as HistoricalWeatherData;
+
+            return {
+                temperature: {
+                    temperature_2m: toCompactSeries(full.temperature?.temperature_2m, stepHours)
+                },
+                solarRadiation: {
+                    diffuse_radiation: toCompactSeries(full.solarRadiation?.diffuse_radiation, stepHours),
+                    direct_radiation: toCompactSeries(full.solarRadiation?.direct_radiation, stepHours)
+                },
+                wind: {
+                    wind_speed_10m: toCompactSeries(full.wind?.wind_speed_10m, stepHours),
+                    wind_gusts_10m: toCompactSeries(full.wind?.wind_gusts_10m, stepHours)
+                },
+                cloudCover: {
+                    cloud_cover_low: toCompactSeries(full.cloudCover?.cloud_cover_low, stepHours),
+                    cloud_cover_mid: toCompactSeries(full.cloudCover?.cloud_cover_mid, stepHours),
+                    cloud_cover_high: toCompactSeries(full.cloudCover?.cloud_cover_high, stepHours)
+                },
+                rain: {
+                    rain: toCompactSeries(full.rain?.rain, stepHours)
+                },
+                pollen: {
+                    ragweed_pollen: toCompactSeries(full.pollen?.ragweed_pollen, stepHours),
+                    alder_pollen: toCompactSeries(full.pollen?.alder_pollen, stepHours),
+                    birch_pollen: toCompactSeries(full.pollen?.birch_pollen, stepHours),
+                    grass_pollen: toCompactSeries(full.pollen?.grass_pollen, stepHours),
+                    mugwort_pollen: toCompactSeries(full.pollen?.mugwort_pollen, stepHours),
+                    olive_pollen: toCompactSeries(full.pollen?.olive_pollen, stepHours)
+                },
+                pollution: {
+                    pm2_5: toCompactSeries(full.pollution?.pm2_5, stepHours),
+                    pm10: toCompactSeries(full.pollution?.pm10, stepHours)
+                }
+            };
         },
 
         weatherEstonia: async (parent: any, args: QueryArgs, ctx: GraphQLContext) => {

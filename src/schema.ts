@@ -13,7 +13,15 @@ export const schema = parse(/* GraphQL */ `
             lng: String!
             startDate: String!
             endDate: String!
+            stepHours: Int = 1
         ): HistoricalWeatherData
+        historicalWeatherCompact(
+            lat: String!
+            lng: String!
+            startDate: String!
+            endDate: String!
+            stepHours: Int = 1
+        ): HistoricalWeatherCompactData
     }
 
     type HistoricalWeatherData {
@@ -26,8 +34,22 @@ export const schema = parse(/* GraphQL */ `
         pollution: Pollution
     }
 
+    type HistoricalWeatherCompactData {
+        temperature: TemperatureCompact
+        solarRadiation: SolarRadiationCompact
+        wind: WindCompact
+        cloudCover: CloudCoverCompact
+        rain: RainCompact
+        pollen: PollenCompact
+        pollution: PollutionCompact
+    }
+
     type Temperature {
         temperature_2m: [TimeSeriesEntry]
+    }
+
+    type TemperatureCompact {
+        temperature_2m: CompactTimeSeries
     }
 
     type SolarRadiation {
@@ -35,9 +57,19 @@ export const schema = parse(/* GraphQL */ `
         direct_radiation: [TimeSeriesEntry]
     }
 
+    type SolarRadiationCompact {
+        diffuse_radiation: CompactTimeSeries
+        direct_radiation: CompactTimeSeries
+    }
+
     type Wind {
         wind_speed_10m: [TimeSeriesEntry]
         wind_gusts_10m: [TimeSeriesEntry]
+    }
+
+    type WindCompact {
+        wind_speed_10m: CompactTimeSeries
+        wind_gusts_10m: CompactTimeSeries
     }
 
     type CloudCover {
@@ -46,8 +78,18 @@ export const schema = parse(/* GraphQL */ `
         cloud_cover_high: [TimeSeriesEntry]
     }
 
+    type CloudCoverCompact {
+        cloud_cover_low: CompactTimeSeries
+        cloud_cover_mid: CompactTimeSeries
+        cloud_cover_high: CompactTimeSeries
+    }
+
     type Rain {
         rain: [TimeSeriesEntry]
+    }
+
+    type RainCompact {
+        rain: CompactTimeSeries
     }
 
     type Pollen {
@@ -59,9 +101,29 @@ export const schema = parse(/* GraphQL */ `
         olive_pollen: [TimeSeriesEntry]
     }
 
+    type PollenCompact {
+        ragweed_pollen: CompactTimeSeries
+        alder_pollen: CompactTimeSeries
+        birch_pollen: CompactTimeSeries
+        grass_pollen: CompactTimeSeries
+        mugwort_pollen: CompactTimeSeries
+        olive_pollen: CompactTimeSeries
+    }
+
     type Pollution {
         pm2_5: [TimeSeriesEntry]
         pm10: [TimeSeriesEntry]
+    }
+
+    type PollutionCompact {
+        pm2_5: CompactTimeSeries
+        pm10: CompactTimeSeries
+    }
+
+    type CompactTimeSeries {
+        startTime: String
+        stepHours: Int!
+        values: [Float]
     }
 
     type TimeSeriesEntry {

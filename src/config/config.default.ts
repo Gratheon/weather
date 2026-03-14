@@ -19,6 +19,16 @@ const config: Config = {
   openweathermap: {
     apiToken: process.env.OPENWEATHERMAP_API_TOKEN || "",
   },
+  redis: {
+    host: process.env.REDIS_HOST || "",
+    port: parseInt(process.env.REDIS_PORT || "6379", 10),
+    password: process.env.REDIS_PASSWORD || "",
+    db: parseInt(process.env.REDIS_DB || "0", 10),
+    historicalWeatherCacheTtlSeconds: parseInt(
+      process.env.HISTORICAL_WEATHER_CACHE_TTL_SECONDS || "1800",
+      10
+    ),
+  },
   JWT_KEY: process.env.JWT_KEY || "",
 };
 

@@ -27,8 +27,19 @@ Get current weather forecast from Open-Meteo API.
 #### `weatherEstonia(lat: String!, lng: String!): JSON`
 Get weather forecast specifically for Estonia from ilmateenistus.ee.
 
-#### `historicalWeather(lat: String!, lng: String!, startDate: String!, endDate: String!): HistoricalWeatherData`
+#### `historicalWeather(lat: String!, lng: String!, startDate: String!, endDate: String!, stepHours: Int = 1): HistoricalWeatherData`
 Get historical weather data from Open-Meteo archive API.
+
+`stepHours` can be used to downsample hourly data server-side (for example, `stepHours: 3` returns every third hour) to reduce response size for long time ranges.
+
+#### `historicalWeatherCompact(lat: String!, lng: String!, startDate: String!, endDate: String!, stepHours: Int = 1): HistoricalWeatherCompactData`
+Compact variant of historical weather where each metric is returned as:
+
+- `startTime`
+- `stepHours`
+- `values: [Float]`
+
+This avoids repeating `time/value` object keys for every point and is more efficient for large time ranges.
 
 **Example Query:**
 ```graphql
@@ -75,6 +86,18 @@ query {
 ```
 just start
 ```
+
+## Caching
+
+`historicalWeather` responses can be cached in Redis to speed up repeated insights/time-view graph loads (for example, 90-day history).
+
+Environment variables:
+
+- `REDIS_HOST` (empty = cache disabled)
+- `REDIS_PORT` (default: `6379`)
+- `REDIS_PASSWORD` (default: empty)
+- `REDIS_DB` (default: `0`)
+- `HISTORICAL_WEATHER_CACHE_TTL_SECONDS` (default: `1800`)
 
 
 ## License
