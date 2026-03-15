@@ -201,7 +201,7 @@ export const resolvers = {
                 logger.info('Fetching weather data', { lat: args.lat, lng: args.lng });
                 
                 const data = await got.get(
-                    `https://api.open-meteo.com/v1/forecast?current_weather=true&latitude=${args.lat}&longitude=${args.lng}&hourly=temperature_2m,relativehumidity_2m,rain,windspeed_10m`
+                    `https://api.open-meteo.com/v1/forecast?current_weather=true&current=precipitation,surface_pressure,pressure_msl&latitude=${args.lat}&longitude=${args.lng}&hourly=temperature_2m,relativehumidity_2m,rain,windspeed_10m,surface_pressure,pressure_msl`
                 ).json();
 
                 logger.info('Weather data fetched successfully', { lat: args.lat, lng: args.lng });
