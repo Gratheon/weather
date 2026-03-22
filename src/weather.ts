@@ -7,7 +7,7 @@ import { buildSubgraphSchema } from "@apollo/subgraph";
 import { schema } from './schema';
 import { resolvers } from './resolvers';
 import { registerSchema } from "./schema-registry";
-import { logger } from "./logger";
+import { fastifyLogger, logger } from "./logger";
 
 interface ApolloContext {
     uid?: string;
@@ -40,7 +40,10 @@ async function startApolloServer(app: FastifyInstance, typeDefs: any, resolvers:
     try {
         logger.info('Weather microservice starting up');
 
-        const app = fastify();
+        const app = fastify({
+            loggerInstance: fastifyLogger,
+            disableRequestLogging: true,
+        });
         
         app.get('/health', (request: FastifyRequest, reply: FastifyReply) => {
             reply.send({ hello: 'world' });

@@ -1,14 +1,13 @@
 import { createLogger } from '@gratheon/log-lib';
-import config from '../config';
+import type { FastifyBaseLogger } from 'fastify';
 
-const { logger } = createLogger({
-    mysql: {
-        host: config.logsDatabase.host,
-        port: parseInt(config.logsDatabase.port),
-        user: config.logsDatabase.user,
-        password: config.logsDatabase.password,
-        database: 'logs'
-    }
-});
+const { logger, fastifyLogger: baseFastifyLogger } = createLogger();
 
-export { logger };
+const fastifyLogger: FastifyBaseLogger = {
+    ...baseFastifyLogger,
+    level: process.env.LOG_LEVEL || (process.env.ENV_ID === 'dev' ? 'debug' : 'info'),
+    silent: baseFastifyLogger.info,
+    child: () => fastifyLogger,
+};
+
+export { logger, fastifyLogger };
