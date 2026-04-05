@@ -13,6 +13,7 @@ FROM gcr.io/distroless/static-debian12:nonroot
 ENV CI=true
 WORKDIR /app
 
+COPY --from=builder /app/config /app/config
 COPY --from=builder /out/weather /app/weather
 
 EXPOSE 8070
