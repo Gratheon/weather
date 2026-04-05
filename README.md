@@ -85,6 +85,7 @@ query {
 ## Development
 ```
 just start
+go test ./...
 ```
 
 ## Caching
