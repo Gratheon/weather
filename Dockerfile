@@ -11,6 +11,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/weather
 
 FROM gcr.io/distroless/static-debian12:nonroot
 
+ENV CI=true
 WORKDIR /app
 
 COPY --from=builder /out/weather /app/weather
