@@ -9,15 +9,18 @@ services:
       - ./src:/app/src
       - ./config:/app/config
       - ./.version:/app/.version
-      - /app/node_modules
+      - weather_node_modules:/app/node_modules
     restart: always
     environment:
       - ENV_ID=dev
       - NODE_OPTIONS=--enable-source-maps
-    command: sh -c "npm install -g pnpm@10.29.2 && pnpm install --frozen-lockfile && pnpm run dev-in-docker"
+    command: pnpm run dev-in-docker
     networks:
       - gratheon_default
 
 networks:
   gratheon_default:
     external: true
+
+volumes:
+  weather_node_modules:
