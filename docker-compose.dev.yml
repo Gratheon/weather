@@ -1,13 +1,12 @@
 services:
   weather:
     build:
-      context: ..
-      dockerfile: weather/Dockerfile.dev
+      context: .
+      dockerfile: Dockerfile.dev
     ports:
       - 8070:8070
     volumes:
-      - ../weather:/src/weather
-      - ../log-lib-go:/src/log-lib-go
+      - .:/app
     restart: always
     environment:
       - ENV_ID=dev
