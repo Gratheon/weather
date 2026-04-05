@@ -1,20 +1,21 @@
 services:
   weather:
     build:
-      context: .
-      dockerfile: Dockerfile.dev
+      context: ..
+      dockerfile: weather/Dockerfile.dev
     ports:
       - 8070:8070
     volumes:
-      - ./src:/app/src
-      - ./config:/app/config
-      - ./.version:/app/.version
-      - /app/node_modules
+      - ../weather:/src/weather
+      - ../log-lib-go:/src/log-lib-go
     restart: always
     environment:
       - ENV_ID=dev
-      - NODE_OPTIONS=--enable-source-maps
-    command: sh -c "npm install -g pnpm@10.29.2 && pnpm install --frozen-lockfile && pnpm run dev-in-docker"
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - HISTORICAL_WEATHER_CACHE_TTL_SECONDS=1800
+    command: sh -c "go mod download && go run ."
     networks:
       - gratheon_default
 

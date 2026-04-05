@@ -12,56 +12,14 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Read .nvmrc
-        run: echo "NVMRC=$(cat .nvmrc)" >> $GITHUB_OUTPUT
-        id: nvm
-        
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.29.2
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-go@v5
         with:
-          node-version: "${{ steps.nvm.outputs.NVMRC }}"
-          cache: "pnpm"
-          
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      
-      - name: Build TypeScript
-        run: npm run build
-      
-      - name: Verify build output
-        run: |
-          if [ ! -f "app/weather.js" ]; then
-            echo "Build failed: app/weather.js not found"
-            exit 1
-          fi
-          echo "Build successful: app/weather.js exists"
-      
-      - name: Start server in background
-        run: |
-          ENV_ID=test node app/weather.js &
-          echo $! > server.pid
-        env:
-          # Prevent database connection errors from failing the server
-          NODE_ENV: test
-      
-      - name: Wait for server to be ready
-        run: |
-          timeout 30 bash -c 'until curl -f http://localhost:8070/health > /dev/null 2>&1; do sleep 1; done'
-          echo "Server is ready"
-      
-      - name: Run integration tests
-        run: npm test
-        env:
-          TEST_HOST: localhost
-          TEST_PORT: 8070
-      
-      - name: Stop server
-        if: always()
-        run: |
-          if [ -f server.pid ]; then
-            kill $(cat server.pid) || true
-          fi
+          go-version-file: go.mod
+          cache: true
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Run tests
+        run: go test ./...

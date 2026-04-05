@@ -1,16 +1,8 @@
-node_modules
 .dccache
 .idea
-
-# TypeScript build artifacts
-*.js.map
-app/*.js
-app/config/*.js
-app/logger/*.js
-app/app/
-app/src/
+weather
 
 # ignore live access configs
-src/config/config.prod.ts
-src/config/config.dev.ts
-src/config/config.local.ts
+config/config.prod.json
+config/config.dev.json
+config/config.local.json
