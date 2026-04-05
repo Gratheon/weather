@@ -2,6 +2,11 @@ version: '3.9'
 services:
   weather:
     build: .
+    environment:
+      - ENV_ID=prod
+      - REDIS_HOST=localhost
+      - REDIS_PORT=6379
+      - REDIS_DB=0
     ports:
       - 8070:8070
     restart: always
