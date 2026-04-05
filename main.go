@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha1"
+	_ "embed"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -23,6 +24,9 @@ import (
 	graphqlhandler "github.com/graphql-go/handler"
 	"github.com/redis/go-redis/v9"
 )
+
+//go:embed schema.graphql
+var embeddedSchemaSDL string
 
 var hourlyFieldNames = []string{
 	"temperature_2m",
@@ -162,7 +166,7 @@ func main() {
 }
 
 func newService(cfg config) (*service, error) {
-	schemaSDL, err := loadSchemaSDL("schema.graphql")
+	schemaSDL, err := loadSchemaSDL()
 	if err != nil {
 		return nil, err
 	}
@@ -208,25 +212,20 @@ func newService(cfg config) (*service, error) {
 	return svc, nil
 }
 
-func loadSchemaSDL(path string) (string, error) {
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		return "", fmt.Errorf("read schema file %s: %w", path, err)
-	}
-
-	sdl := strings.TrimSpace(string(raw))
+func loadSchemaSDL() (string, error) {
+	sdl := strings.TrimSpace(embeddedSchemaSDL)
 	if sdl == "" {
-		return "", fmt.Errorf("schema file %s is empty", path)
+		return "", fmt.Errorf("embedded schema is empty")
 	}
 
-	_, err = parser.Parse(parser.ParseParams{
+	_, err := parser.Parse(parser.ParseParams{
 		Source: &source.Source{
 			Body: []byte(sdl),
-			Name: path,
+			Name: "schema.graphql",
 		},
 	})
 	if err != nil {
-		return "", fmt.Errorf("parse schema file %s: %w", path, err)
+		return "", fmt.Errorf("parse embedded schema: %w", err)
 	}
 
 	return sdl, nil
