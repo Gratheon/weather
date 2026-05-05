@@ -14,7 +14,13 @@ services:
       - REDIS_PORT=6379
       - REDIS_DB=0
       - HISTORICAL_WEATHER_CACHE_TTL_SECONDS=1800
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://host.docker.internal:4318}
+      - OTEL_SERVICE_NAME=weather
+      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=dev,service.namespace=gratheon
+      - HYPERDX_API_KEY=${HYPERDX_API_KEY:-local-gratheon-clickstack}
     command: sh -c "go mod download && go run ."
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - gratheon_default
 

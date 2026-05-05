@@ -7,6 +7,10 @@ services:
       - REDIS_HOST=localhost
       - REDIS_PORT=6379
       - REDIS_DB=0
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://127.0.0.1:4318}
+      - OTEL_SERVICE_NAME=weather
+      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment.name=prod,service.namespace=gratheon
+      - HYPERDX_API_KEY=${HYPERDX_API_KEY:-}
     ports:
       - 8070:8070
     restart: always
