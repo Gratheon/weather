@@ -1,0 +1,181 @@
+#!/bin/bash
+set -euo pipefail
+
+readonly DOCKER=/usr/bin/docker
+readonly CURL=/usr/bin/curl
+readonly IMAGE_PREFIX='ghcr.io/gratheon/weather@sha256:'
+readonly PROJECT_NAME='weather'
+readonly SERVICE_NAME='weather'
+readonly CANONICAL_NAME='weather_weather_1'
+readonly VERIFY_URL='http://127.0.0.1:8070/health'
+readonly VERIFY_ATTEMPTS=30
+readonly LOCK_FILE='/run/lock/gratheon-weather-deploy.lock'
+
+fail() {
+    printf 'weather deploy: %s\n' "$*" >&2
+    exit 1
+}
+
+[[ $# -eq 0 ]] || fail 'command-line arguments are not accepted'
+IFS= read -r image_ref || fail 'missing immutable image reference on stdin'
+readonly image_ref
+[[ "$image_ref" =~ ^${IMAGE_PREFIX}[0-9a-f]{64}$ ]] \
+    || fail "refusing non-allowlisted image reference: $image_ref"
+
+# Inputs are intentionally accepted through stdin so no token or user-controlled
+# image reference appears in the privileged process arguments.
+IFS= read -r registry_actor || fail 'missing registry actor on stdin'
+IFS= read -r registry_token || fail 'missing registry token on stdin'
+[[ "$registry_actor" =~ ^[A-Za-z0-9_][A-Za-z0-9_.\[\]-]{0,127}$ ]] \
+    || fail 'invalid registry actor'
+[[ -n "$registry_token" ]] || fail 'empty registry token'
+
+exec 9>"$LOCK_FILE"
+flock -n 9 || fail 'another weather deployment is already active'
+
+registry_config="$(mktemp -d /run/gratheon-weather-registry.XXXXXX)"
+runtime_env_file="$(mktemp /run/gratheon-weather-env.XXXXXX)"
+chmod 0600 "$runtime_env_file"
+cleanup_runtime_files() {
+    if [[ "${rollback_pending:-0}" -eq 1 ]] \
+        && [[ -n "${rollback_name:-}" ]] \
+        && "$DOCKER" container inspect "$rollback_name" >/dev/null 2>&1; then
+        "$DOCKER" rm -f "$CANONICAL_NAME" >/dev/null 2>&1 || true
+        "$DOCKER" rename "$rollback_name" "$CANONICAL_NAME" || true
+        "$DOCKER" start "$CANONICAL_NAME" >/dev/null 2>&1 || true
+    fi
+    registry_token=''
+    rm -rf -- "$registry_config"
+    rm -f -- "$runtime_env_file"
+}
+trap cleanup_runtime_files EXIT
+trap 'exit 130' HUP INT TERM
+
+printf '%s\n' "$registry_token" \
+    | "$DOCKER" --config "$registry_config" login ghcr.io \
+        --username "$registry_actor" --password-stdin >/dev/null
+registry_token=''
+"$DOCKER" --config "$registry_config" pull "$image_ref"
+
+find_current_container() {
+    if "$DOCKER" container inspect "$CANONICAL_NAME" >/dev/null 2>&1; then
+        printf '%s\n' "$CANONICAL_NAME"
+        return
+    fi
+
+    local container_id
+    container_id="$({
+        "$DOCKER" ps -aq \
+            --filter "label=com.docker.compose.project=${PROJECT_NAME}" \
+            --filter "label=com.docker.compose.service=${SERVICE_NAME}"
+        "$DOCKER" ps -aq \
+            --filter 'label=com.docker.compose.project=gratheon' \
+            --filter "label=com.docker.compose.service=${SERVICE_NAME}"
+    } | head -n 1)"
+    [[ -z "$container_id" ]] || printf '%s\n' "$container_id"
+}
+
+copy_env_or_default() {
+    local container_id="$1"
+    local key="$2"
+    local default_value="$3"
+    local value=''
+
+    if [[ -n "$container_id" ]]; then
+        value="$($DOCKER inspect "$container_id" \
+            --format '{{range .Config.Env}}{{println .}}{{end}}' \
+            | sed -n "s/^${key}=//p" | head -n 1)"
+    fi
+    printf '%s=%s\n' "$key" "${value:-$default_value}"
+}
+
+verify_candidate() {
+    local attempt=1
+    while (( attempt <= VERIFY_ATTEMPTS )); do
+        if "$CURL" --fail --silent --show-error --max-time 5 \
+            "$VERIFY_URL" >/dev/null; then
+            return 0
+        fi
+        sleep 2
+        ((attempt += 1))
+    done
+    return 1
+}
+
+current_container="$(find_current_container)"
+previous_image_id=''
+rollback_pending=0
+if [[ -n "$current_container" ]]; then
+    previous_image_id="$($DOCKER inspect "$current_container" --format '{{.Image}}')"
+fi
+
+readonly digest_short="${image_ref##*@sha256:}"
+readonly candidate_name="weather_candidate_${digest_short:0:12}"
+rollback_name="weather_rollback_$(date -u +%Y%m%d%H%M%S)"
+readonly rollback_name
+
+"$DOCKER" rm -f "$candidate_name" >/dev/null 2>&1 || true
+
+{
+    copy_env_or_default "$current_container" ENV_ID prod
+    copy_env_or_default "$current_container" REDIS_HOST localhost
+    copy_env_or_default "$current_container" REDIS_PORT 6379
+    copy_env_or_default "$current_container" REDIS_DB 0
+    copy_env_or_default "$current_container" OTEL_EXPORTER_OTLP_ENDPOINT http://127.0.0.1:4318
+    copy_env_or_default "$current_container" OTEL_SERVICE_NAME weather
+    copy_env_or_default "$current_container" OTEL_RESOURCE_ATTRIBUTES 'deployment.environment.name=prod,service.namespace=gratheon'
+    copy_env_or_default "$current_container" HYPERDX_API_KEY ''
+} >"$runtime_env_file"
+
+# Create the candidate before touching the active container. No source checkout,
+# package manager, compiler, Compose build, or www-owned executable is involved.
+"$DOCKER" create \
+    --name "$candidate_name" \
+    --label "com.docker.compose.project=${PROJECT_NAME}" \
+    --label "com.docker.compose.service=${SERVICE_NAME}" \
+    --label 'com.docker.compose.oneoff=False' \
+    --label "com.gratheon.image=${image_ref}" \
+    --network host \
+    --restart always \
+    --log-opt max-size=10m \
+    --log-opt max-file=3 \
+    --env-file "$runtime_env_file" \
+    "$image_ref" >/dev/null
+
+rollback() {
+    "$DOCKER" rm -f "$CANONICAL_NAME" >/dev/null 2>&1 || true
+    if [[ -n "$current_container" ]] \
+        && "$DOCKER" container inspect "$rollback_name" >/dev/null 2>&1; then
+        "$DOCKER" rename "$rollback_name" "$CANONICAL_NAME"
+        "$DOCKER" start "$CANONICAL_NAME" >/dev/null
+        rollback_pending=0
+        verify_candidate || true
+    fi
+}
+
+if [[ -n "$current_container" ]]; then
+    "$DOCKER" stop --time 30 "$current_container" >/dev/null
+    "$DOCKER" rename "$current_container" "$rollback_name"
+    rollback_pending=1
+    if [[ -n "$previous_image_id" ]]; then
+        "$DOCKER" tag "$previous_image_id" weather:rollback
+    fi
+fi
+
+"$DOCKER" rename "$candidate_name" "$CANONICAL_NAME"
+if ! "$DOCKER" start "$CANONICAL_NAME" >/dev/null; then
+    rollback
+    fail "candidate failed to start: $image_ref"
+fi
+
+if ! verify_candidate; then
+    rollback
+    fail "health check failed, rolled back from: $image_ref"
+fi
+
+if "$DOCKER" container inspect "$rollback_name" >/dev/null 2>&1; then
+    "$DOCKER" rm -f "$rollback_name" >/dev/null
+fi
+rollback_pending=0
+
+printf 'weather deploy: activated %s\n' "$image_ref"

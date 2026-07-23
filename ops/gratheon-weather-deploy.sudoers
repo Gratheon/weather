@@ -1,0 +1,4 @@
+# Installed as `/etc/sudoers.d/gratheon-weather-deploy` with mode 0440.
+# The command accepts all data through stdin and validates the image against the
+# exact `ghcr.io/gratheon/weather@sha256:<64 lowercase hex>` allowlist.
+www ALL=(root) NOPASSWD: /usr/local/sbin/gratheon-deploy-weather

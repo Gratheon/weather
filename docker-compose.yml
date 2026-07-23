@@ -1,6 +1,7 @@
 version: '3.9'
 services:
   weather:
+    image: ${WEATHER_IMAGE:-weather:latest}
     build: .
     environment:
       - ENV_ID=prod

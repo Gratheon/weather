@@ -4,11 +4,21 @@ on:
     branches: main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: weather-production
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: ghcr.io/gratheon/weather
+
 jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    
+
     steps:
       - uses: actions/checkout@v4
 
@@ -23,14 +33,52 @@ jobs:
       - name: Run tests
         run: go test ./...
 
-  deploy:
+  build-image:
     needs: test
-    runs-on: self-hosted
-    steps:
-      - name: pull
-        working-directory: /www/weather/
-        run: git reset --hard && git pull
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ env.IMAGE_NAME }}
+      digest: ${{ steps.build.outputs.digest }}
 
-      - name: restart
-        working-directory: /www/weather/
-        run: chmod +x restart.sh && ./restart.sh
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish immutable image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  deploy:
+    needs: build-image
+    runs-on: self-hosted
+    timeout-minutes: 10
+    environment: production
+    permissions:
+      contents: read
+      packages: read
+    env:
+      WEATHER_IMAGE: ${{ needs.build-image.outputs.image }}@${{ needs.build-image.outputs.digest }}
+
+    steps:
+      - name: Activate tested image through restricted deploy command
+        env:
+          REGISTRY_ACTOR: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s\n%s\n%s\n' "$WEATHER_IMAGE" "$REGISTRY_ACTOR" "$REGISTRY_TOKEN" \
+            | sudo -n /usr/local/sbin/gratheon-deploy-weather
