@@ -1,6 +1,6 @@
 module github.com/gratheon/weather
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/Gratheon/log-lib-go v0.0.0-20260502194631-9871d20a7290
