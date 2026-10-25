@@ -3,10 +3,11 @@ package main
 import (
 	"bytes"
 	"context"
-	"crypto/sha1"
+	"crypto/sha1" //nolint:gosec // content hash for the schema version, not security
 	_ "embed"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -766,7 +767,7 @@ func (s *service) getJSON(ctx context.Context, url string, out any) error {
 
 func (s *service) registerSchema(ctx context.Context) {
 	pushURL := resolveSchemaPushURL(s.cfg.SchemaRegistryHost)
-	version := fmt.Sprintf("%x", sha1.Sum([]byte(s.schemaSDL)))
+	version := fmt.Sprintf("%x", sha1.Sum([]byte(s.schemaSDL))) //nolint:gosec // content hash for the schema version, not security
 	if s.cfg.EnvironmentID == "dev" {
 		version = "latest"
 	}
@@ -813,7 +814,7 @@ func (s *service) getCachedHistoricalWeather(ctx context.Context, key string) (m
 	}
 
 	value, err := s.redis.Get(ctx, key).Result()
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		return nil, false, nil
 	}
 	if err != nil {
@@ -1035,13 +1036,6 @@ func loggingMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 		logger.Info("request completed", map[string]interface{}{"method": r.Method, "path": r.URL.Path, "duration": time.Since(start).Round(time.Millisecond).String()})
 	})
-}
-
-func getenv(key, fallback string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return fallback
 }
 
 func getenvInt(key string, fallback int) int {
